@@ -69,16 +69,18 @@ func printMeteo(dataMeteo MeteoResponse) {
 	}
 }
 
-func getAdviceTemperature(dataMeteo MeteoResponse) {
+func getAdviceTemperature(dataMeteo MeteoResponse) string {
+	var advice string
 	temperatureMax := dataMeteo.Daily.TemperatureMax[0]
 	temperatureMin := dataMeteo.Daily.TemperatureMin[0]
 	if temperatureMax > 20 {
-		fmt.Println("Il fera chaud aujourd'hui")
+		advice = "☀️ Un petit pull grand max, il fera chaud aujourd'hui 😎\n"
 	} else if temperatureMin < 2 {
-		fmt.Println("Il fera froid aujourd'hui")
+		advice = "❄️ Brr, mets un bon manteau, il fera froid aujourd'hui 🧥🧣\n"
 	} else {
-		fmt.Println("Il fera bon aujourd'hui")
+		advice = "🌤️ Une bonne polaire suffira, il fera bon aujourd'hui 🙂\n"
 	}
+	return advice
 }
 func getBot() *tgbotapi.BotAPI {
 	token := os.Getenv("TELEGRAM_TOKEN")
@@ -91,7 +93,10 @@ func getBot() *tgbotapi.BotAPI {
 
 func craftMessage(dataMeteo MeteoResponse) string {
 	message := "Salut les copains ☀️!\nAlors, quel est la température aujourd'hui?\n"
-	message += fmt.Sprintf("Température: %.1f", dataMeteo.Daily.TemperatureMax[0])
+	message += fmt.Sprintf("Température: %.1f\n", dataMeteo.Daily.TemperatureMax[0])
+	message += "Avec cette température je te conseil je t'habiller comme ca!\n"
+	message += getAdviceTemperature(dataMeteo)
+	message += "Bonne journée!"
 	// message := fmt.Sprintf("Température: %.1f°C\nVent: %.1f km/h\nWeather code: %d", dataMeteo.Daily.TemperatureMax[0], dataMeteo.Daily.WindSpeed[0], dataMeteo.Daily.WeatherCode[0])
 	return message
 }
@@ -115,6 +120,5 @@ func main() {
 	godotenv.Load()
 	dataMeteo := callMeteo()
 	printMeteo(dataMeteo)
-	getAdviceTemperature(dataMeteo)
 	callBotTelegram(dataMeteo)
 }
