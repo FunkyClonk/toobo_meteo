@@ -1,0 +1,28 @@
+name: Run Go Script Daily
+
+on:
+  schedule:
+    - cron: "0 7 * * *" # Tous les jours à 07:00 UTC
+  workflow_dispatch: # Permet aussi de lancer manuellement
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Run toobo.go
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+        run: go run toobo.go
