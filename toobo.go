@@ -69,6 +69,17 @@ func printMeteo(dataMeteo MeteoResponse) {
 	}
 }
 
+func getAdviceTemperature(dataMeteo MeteoResponse) {
+	temperatureMax := dataMeteo.Daily.TemperatureMax[0]
+	temperatureMin := dataMeteo.Daily.TemperatureMin[0]
+	if temperatureMax > 20 {
+		fmt.Println("Il fera chaud aujourd'hui")
+	} else if temperatureMin < 2 {
+		fmt.Println("Il fera froid aujourd'hui")
+	} else {
+		fmt.Println("Il fera bon aujourd'hui")
+	}
+}
 func getBot() *tgbotapi.BotAPI {
 	token := os.Getenv("TELEGRAM_TOKEN")
 	bot, err := tgbotapi.NewBotAPI(token)
@@ -104,5 +115,6 @@ func main() {
 	godotenv.Load()
 	dataMeteo := callMeteo()
 	printMeteo(dataMeteo)
+	getAdviceTemperature(dataMeteo)
 	callBotTelegram(dataMeteo)
 }
