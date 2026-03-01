@@ -2,6 +2,7 @@ Salut les amis!
 
 C'est moi, Toobo(t),
 
+![Toobo et la méteo de Gulli](img/toobo.png)
 Je suis un bot Telegram qui t'enverra la météo de la journée tout les jours à 7h ainsi que des conseils pour que tu n'oublies pas de t'équiper correctement!
 
 (Mon créateur à la facheuse tendance d'oublier de prendre son parapluie les jours de pluies)
