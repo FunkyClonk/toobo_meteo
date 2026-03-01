@@ -10,6 +10,5 @@ import (
 func main() {
 	godotenv.Load()
 	dataMeteo := meteo.CallMeteo()
-	meteo.PrintMeteo(dataMeteo)
 	bot.CallBotTelegram(dataMeteo)
 }

@@ -1,7 +1,6 @@
 package bot
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -21,9 +20,7 @@ func getBot() *tgbotapi.BotAPI {
 
 func craftMessage(dataMeteo meteo.MeteoResponse) string {
 	message := "Salut les copains ☀️!\nAlors, quel est la température aujourd'hui?\n"
-	message += fmt.Sprintf("Température: %.1f\n", dataMeteo.Daily.TemperatureMax[0])
-	message += "Avec cette température je te conseil je t'habiller comme ca!\n"
-	message += meteo.GetAdviceTemperature(dataMeteo)
+	message += meteo.GetAdvices(dataMeteo)
 	message += "Bonne journée!"
 	// message := fmt.Sprintf("Température: %.1f°C\nVent: %.1f km/h\nWeather code: %d", dataMeteo.Daily.TemperatureMax[0], dataMeteo.Daily.WindSpeed[0], dataMeteo.Daily.WeatherCode[0])
 	return message

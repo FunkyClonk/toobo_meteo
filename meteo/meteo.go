@@ -43,48 +43,102 @@ func CallMeteo() MeteoResponse {
 	return data
 }
 
-func PrintMeteo(dataMeteo MeteoResponse) {
-	fmt.Printf("Température max: %.1f°C\n", dataMeteo.Daily.TemperatureMax[0])
-	fmt.Printf("Température min: %.1f°C\n", dataMeteo.Daily.TemperatureMin[0])
-	fmt.Printf("Code météo: %d \n", dataMeteo.Daily.WeatherCode[0])
-	fmt.Printf("Vitesse du vent max: %.1f km/h\n", dataMeteo.Daily.WindSpeed[0])
-	fmt.Printf("Lever du soleil: %s\n", dataMeteo.Daily.Sunrise[0])
-	fmt.Printf("Coucher du soleil: %s\n", dataMeteo.Daily.Sunset[0])
-	fmt.Printf("Durée de la lumière du jour: %.0f min\n", dataMeteo.Daily.DayLightDuration[0])
-	fmt.Printf("Durée d'ensoleillement: %.0f min\n", dataMeteo.Daily.SunshineDuration[0])
-	fmt.Printf("Pluie totale: %.1f mm\n", dataMeteo.Daily.RainSum[0])
-	fmt.Printf("Neige totale: %.1f cm\n", dataMeteo.Daily.SnowfallSum[0])
-	fmt.Printf("Heures de précipitation: %.1f h\n", dataMeteo.Daily.PrecipitationHours[0])
-	fmt.Printf("Somme des averses: %.1f mm\n", dataMeteo.Daily.ShowersSum[0])
-	if dataMeteo.Daily.UVMax[0] != 0 {
-		fmt.Printf("Indice UV max: %.1f \n", dataMeteo.Daily.UVMax[0])
-	}
+func GetAdvices(dataMeteo MeteoResponse) string {
+	advices := getAdviceTemperature(dataMeteo)
+	advices += getAdviceRain(dataMeteo)
+	advices += getAdviceWeatherCode(dataMeteo)
+	advices += getAdviceWind(dataMeteo)
+	advices += getAdviceDayTime(dataMeteo)
+	advices += getAdviceSnow(dataMeteo)
+	advices += getAdviceUV(dataMeteo)
+	return advices
 }
 
-func GetAdviceTemperature(dataMeteo MeteoResponse) string {
-	var advice string
-	temperatureMax := dataMeteo.Daily.TemperatureMax[0]
-	temperatureMin := dataMeteo.Daily.TemperatureMin[0]
-	if temperatureMax > 20 {
-		advice = "☀️ Un petit pull grand max, il fera chaud aujourd'hui 😎\n"
-	} else if temperatureMin < 2 {
-		advice = "❄️ Brr, mets un bon manteau, il fera froid aujourd'hui 🧥🧣\n"
-	} else {
-		advice = "🌤️ Une bonne polaire suffira, il fera bon aujourd'hui 🙂\n"
+func getAdviceUV(dataMeteo MeteoResponse) string {
+	advice := ""
+	if dataMeteo.Daily.UVMax[0] != 0 {
+		fmt.Printf("Indice UV max: %.1f \n", dataMeteo.Daily.UVMax[0])
+		uvMax := dataMeteo.Daily.UVMax[0]
+		if uvMax > 3 {
+			advice = "Le soleil va tapper aujourd'hui, prend tes lunettes et ta crème solaire!\n"
+		}
+
 	}
 	return advice
 }
 
-func getAdviceRain(dataMeteo MeteoResponse) string {
+func getAdviceSnow(dataMeteo MeteoResponse) string {
+	snowfallSum := dataMeteo.Daily.SnowfallSum[0]
 	var advice string
+	if snowfallSum > 0 {
+		advice = fmt.Sprintf("Oh il va neiger, %1.f cm de neige !\n C'est jolie mais fait attention en voiture!\n", snowfallSum)
+	}
+	return advice
+}
+
+func getAdviceDayTime(dataMeteo MeteoResponse) string {
+	sunshineDuration := dataMeteo.Daily.SunshineDuration[0]
+	advice := fmt.Sprintf("Le soleil se levera à %s et se couchera à %s\nDonc %.0f sec de lumière du jour et %.0f sec d'ensolleiment\n", dataMeteo.Daily.Sunrise[0], dataMeteo.Daily.Sunset[0], dataMeteo.Daily.DayLightDuration[0], dataMeteo.Daily.SunshineDuration[0])
+	if sunshineDuration < 36000 {
+		advice += "Une journée nuageuse mais pas de quoi se décourager!\n"
+	} else {
+		advice += "Une journée ensolleilé! Profite en bien avec tes proches :)\n"
+	}
+	return advice
+}
+func getAdviceWind(dataMeteo MeteoResponse) string {
+	windSpeed := dataMeteo.Daily.WindSpeed[0]
+	var advice string
+	switch {
+	case windSpeed < 40:
+		advice = "Pas trop de vent aujourd'hui, une journée calme :)\n"
+	case windSpeed < 50:
+		advice = "Un peu de vent aujourd'hui, mais rien d'insurmontable!\n"
+	case windSpeed < 60:
+		advice = "Beaucoup de vent aujourd'hui, fait attention si tu prend le vélo!\n"
+	case windSpeed > 60:
+		advice = "Oula, c'est la tempete aujourd'hui, fait attention quand tu sors!\n"
+	}
+	return advice
+}
+
+func getAdviceWeatherCode(dataMeteo MeteoResponse) string {
+	fmt.Printf("Code météo: %d \n", dataMeteo.Daily.WeatherCode[0])
+	return ""
+}
+
+func getAdviceRain(dataMeteo MeteoResponse) string {
+	rainSum := dataMeteo.Daily.RainSum[0]
+	var advice string
+	if rainSum == 0 {
+		advice = "Pas de pluie aujourd'hui, youpi!\n"
+	} else {
+		showerSum := dataMeteo.Daily.ShowersSum[0]
+		if showerSum > 0 {
+			advice = "De grosses averses sont a prévoires\n Je te conseil de prendre ton parapluie et du kway pour te protéger\n"
+		} else {
+			precipitationHours := dataMeteo.Daily.PrecipitationHours[0]
+			if precipitationHours > 5 {
+				advice = "Il pleuvera un peu toute la journée, tu peut prendre un kway pour te balader en toute tranquillité\n"
+			} else {
+				advice = "Très peu de pluie aujourd'hui, youpi!\n"
+			}
+		}
+	}
+	return advice
+}
+
+func getAdviceTemperature(dataMeteo MeteoResponse) string {
+	advice := fmt.Sprintf("Température: %.1f - %.1f°C\n", dataMeteo.Daily.TemperatureMax[0], dataMeteo.Daily.TemperatureMin[0])
+	advice += "Avec cette température je te conseil je t'habiller comme ca!\n"
 	temperatureMax := dataMeteo.Daily.TemperatureMax[0]
 	temperatureMin := dataMeteo.Daily.TemperatureMin[0]
 	if temperatureMax > 20 {
-		advice = "☀️ Un petit pull grand max, il fera chaud aujourd'hui 😎\n"
+		advice += "☀️ Un petit pull grand max, il fera chaud aujourd'hui 😎\n"
 	} else if temperatureMin < 2 {
-		advice = "❄️ Brr, mets un bon manteau, il fera froid aujourd'hui 🧥🧣\n"
+		advice += "❄️ Brr, mets un bon manteau, un bonnet et des gants, il fera froid aujourd'hui 🧥🧣\n"
 	} else {
-		advice = "🌤️ Une bonne polaire suffira, il fera bon aujourd'hui 🙂\n"
+		advice += "🌤️ Une bonne polaire suffira, il fera bon aujourd'hui 🙂\n"
 	}
 	return advice
 }
