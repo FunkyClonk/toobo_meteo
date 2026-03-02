@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"os"
 )
@@ -44,9 +45,9 @@ func CallMeteo() MeteoResponse {
 }
 
 func GetAdvices(dataMeteo MeteoResponse) string {
-	advices := getAdviceTemperature(dataMeteo)
+	advices := getAdviceWeatherCode(dataMeteo)
+	advices += getAdviceTemperature(dataMeteo)
 	advices += getAdviceRain(dataMeteo)
-	advices += getAdviceWeatherCode(dataMeteo)
 	advices += getAdviceWind(dataMeteo)
 	advices += getAdviceDayTime(dataMeteo)
 	advices += getAdviceSnow(dataMeteo)
@@ -77,9 +78,22 @@ func getAdviceSnow(dataMeteo MeteoResponse) string {
 }
 
 func getAdviceDayTime(dataMeteo MeteoResponse) string {
-	sunshineDuration := dataMeteo.Daily.SunshineDuration[0]
-	advice := fmt.Sprintf("Le soleil se levera à %s et se couchera à %s\nDonc %.0f sec de lumière du jour et %.0f sec d'ensolleiment\n", dataMeteo.Daily.Sunrise[0], dataMeteo.Daily.Sunset[0], dataMeteo.Daily.DayLightDuration[0], dataMeteo.Daily.SunshineDuration[0])
-	if sunshineDuration < 36000 {
+	srTime, err := time.Parse("2006-01-02T15:04", dataMeteo.Daily.Sunrise[0])
+	if err != nil {
+		panic(err)
+	}
+	sunrise := srTime.Format("15:04")
+	ssTime, err := time.Parse("2006-01-02T15:04", dataMeteo.Daily.Sunset[0])
+	if err != nil {
+		panic(err)
+	}
+	sunset := ssTime.Format("15:04")
+	dayLightDurationHours := float64(dataMeteo.Daily.DayLightDuration[0]) / 3600
+	fmt.Println(dayLightDurationHours) // 2
+	sunshineDurationHours := float64(dataMeteo.Daily.SunshineDuration[0]) / 3600
+	fmt.Println(sunshineDurationHours) // 2
+	advice := fmt.Sprintf("Le soleil se levera à %s et se couchera à %s\nDonc %.0fh de lumière du jour et %.0fh d'ensolleiment\n", sunrise, sunset, dayLightDurationHours, sunshineDurationHours)
+	if sunshineDurationHours < 7 {
 		advice += "Une journée nuageuse mais pas de quoi se décourager!\n"
 	} else {
 		advice += "Une journée ensolleilé! Profite en bien avec tes proches :)\n"
@@ -103,8 +117,9 @@ func getAdviceWind(dataMeteo MeteoResponse) string {
 }
 
 func getAdviceWeatherCode(dataMeteo MeteoResponse) string {
-	fmt.Printf("Code météo: %d \n", dataMeteo.Daily.WeatherCode[0])
-	return ""
+	weatherSignification := getWeatherCodeTraduction(dataMeteo.Daily.WeatherCode[0])
+	advice := fmt.Sprintf("Aujourd'hui on aura %s\n", weatherSignification)
+	return advice
 }
 
 func getAdviceRain(dataMeteo MeteoResponse) string {
@@ -129,7 +144,7 @@ func getAdviceRain(dataMeteo MeteoResponse) string {
 }
 
 func getAdviceTemperature(dataMeteo MeteoResponse) string {
-	advice := fmt.Sprintf("Température: %.1f - %.1f°C\n", dataMeteo.Daily.TemperatureMax[0], dataMeteo.Daily.TemperatureMin[0])
+	advice := fmt.Sprintf("Température: %.1f - %.1f°C\n", dataMeteo.Daily.TemperatureMin[0], dataMeteo.Daily.TemperatureMax[0])
 	advice += "Avec cette température je te conseil je t'habiller comme ca!\n"
 	temperatureMax := dataMeteo.Daily.TemperatureMax[0]
 	temperatureMin := dataMeteo.Daily.TemperatureMin[0]
