@@ -118,7 +118,7 @@ func getAdviceWind(dataMeteo MeteoResponse) string {
 
 func getAdviceWeatherCode(dataMeteo MeteoResponse) string {
 	weatherSignification := getWeatherCodeTraduction(dataMeteo.Daily.WeatherCode[0])
-	advice := fmt.Sprintf("Aujourd'hui on aura %s\n", weatherSignification)
+	advice := fmt.Sprintf("Aujourd'hui on aura : %s\n", weatherSignification)
 	return advice
 }
 
