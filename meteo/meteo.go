@@ -94,9 +94,9 @@ func getAdviceDayTime(dataMeteo MeteoResponse) string {
 	}
 	sunset := ssTime.Format("15:04")
 	dayLightDurationHours := float64(dataMeteo.Daily.DayLightDuration[0]) / 3600
-	fmt.Println(dayLightDurationHours) // 2
+	//fmt.Println(dayLightDurationHours) // 2
 	sunshineDurationHours := float64(dataMeteo.Daily.SunshineDuration[0]) / 3600
-	fmt.Println(sunshineDurationHours) // 2
+	//fmt.Println(sunshineDurationHours) // 2
 	advice := fmt.Sprintf("Le soleil se levera à %s et se couchera à %s\nDonc %.0fh de lumière du jour et %.0fh d'ensolleiment\n", sunrise, sunset, dayLightDurationHours, sunshineDurationHours)
 	if sunshineDurationHours < 7 {
 		advice += "Une journée nuageuse mais pas de quoi se décourager!\n"
@@ -130,7 +130,7 @@ func getAdviceWind(dataMeteo MeteoResponse) string {
 }
 
 func getAdviceWeatherCode(dataMeteo MeteoResponse) string {
-	fmt.Println(dataMeteo.Daily.RainSum)
+	//fmt.Println(dataMeteo.Daily.RainSum)
 	weatherSignification := getWeatherCodeTraduction(dataMeteo.Daily.WeatherCode[0])
 	advice := fmt.Sprintf("Aujourd'hui on aura : %s\n", weatherSignification)
 	return advice
