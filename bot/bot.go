@@ -100,7 +100,7 @@ func getRows(conn *pgx.Conn) {
 func addRows(conn *pgx.Conn) {
 	_, err := conn.Exec(context.Background(),
 		"INSERT INTO chat_info_telegram_toobo (chat_id, city, chat_name) VALUES ($1, $2, $3)",
-		"123", "Bordeaux", "Le bordelais",
+		"423", "Paris", "Le parisien",
 	)
 	if err != nil {
 		log.Fatal(err)
