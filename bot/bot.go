@@ -137,7 +137,7 @@ func pingDatabase() {
 	}
 
 	getRows(conn)
-	addRows(conn)
+	// addRows(conn)
 
 }
 
