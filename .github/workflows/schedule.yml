@@ -25,5 +25,7 @@ jobs:
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
+          CHAT_IDS: ${{ secrets.CHAT_IDS }}
+          DB_PULLER: ${{ secrets.DB_PULLER }}
           METEO_URL: ${{ secrets.METEO_URL }}
         run: go run toobo.go
