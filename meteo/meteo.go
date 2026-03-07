@@ -25,6 +25,11 @@ type MeteoResponse struct {
 		RainSum            []float64 `json:"rain_sum"`
 		UVMax              []float64 `json:"uv_index_max"`
 	} `json:"daily"`
+	Hourly struct {
+		TemperatureHourly []float64 `json:"apparent_temperature"`
+		WindHourly        []float64 `json:"wind_speed_10m"`
+		RainHourly        []float64 `json:"rain"`
+	} `json:"hourly"`
 }
 
 func CallMeteo() MeteoResponse {
@@ -113,10 +118,19 @@ func getAdviceWind(dataMeteo MeteoResponse) string {
 	case windSpeed > 60:
 		advice = "Oula, c'est la tempete aujourd'hui, fait attention quand tu sors!\n"
 	}
+	wind8AM := dataMeteo.Hourly.WindHourly[8]
+	if wind8AM > 10 {
+		advice += fmt.Sprintf("Il y aura pas mal de vent ce matin à 8h, %.1f km/h quand même! Attention à l'allé!\n", wind8AM)
+	}
+	wind6PM := dataMeteo.Hourly.WindHourly[18]
+	if wind6PM > 10 {
+		advice += fmt.Sprintf("Il y aura pas mal de vent ce soir à 18h, %.1f km/h quand même! Attention au retour!\n", wind6PM)
+	}
 	return advice
 }
 
 func getAdviceWeatherCode(dataMeteo MeteoResponse) string {
+	fmt.Println(dataMeteo.Daily.RainSum)
 	weatherSignification := getWeatherCodeTraduction(dataMeteo.Daily.WeatherCode[0])
 	advice := fmt.Sprintf("Aujourd'hui on aura : %s\n", weatherSignification)
 	return advice
@@ -140,6 +154,14 @@ func getAdviceRain(dataMeteo MeteoResponse) string {
 			}
 		}
 	}
+	rain8AM := dataMeteo.Hourly.RainHourly[8]
+	rain6PM := dataMeteo.Hourly.RainHourly[18]
+	if rain8AM > 0 {
+		advice += fmt.Sprintf("Il pleuvera %.1f mm ce matin à 8h, tu pourras mettre ton kway à l'allée\n", rain8AM)
+	}
+	if rain6PM > 0 {
+		advice += fmt.Sprintf("Il pleuvera %.1f mm ce soir à 18h, tu pourras mettre ton kway au retour\n", rain6PM)
+	}
 	return advice
 }
 
@@ -155,5 +177,6 @@ func getAdviceTemperature(dataMeteo MeteoResponse) string {
 	} else {
 		advice += "🌤️ Une bonne polaire suffira, il fera bon aujourd'hui 🙂\n"
 	}
+	advice += fmt.Sprintf("En particulier, A 8h il fera %.1f°C et à 18h il fera %.1f°C\n", dataMeteo.Hourly.TemperatureHourly[8], dataMeteo.Hourly.TemperatureHourly[18])
 	return advice
 }
