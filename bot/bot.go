@@ -82,7 +82,7 @@ func updateChatIdsToDBFromBot(bot *tgbotapi.BotAPI) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	// Just to tringer the Supabase table
+	// Just to trigger the Supabase table at least once a day
 	testAddAndDelete(conn)
 	updates, err := bot.GetUpdates(tgbotapi.NewUpdate(0))
 	if err != nil {
@@ -101,14 +101,19 @@ func updateChatIdsToDBFromBot(bot *tgbotapi.BotAPI) {
 				if mots[1] == "Supprimer" {
 					deleteRow(conn, u.Message.Chat.ID)
 				} else {
-					checkToAddRows(conn, u.Message.Chat.ID, mots[1], mots[0])
+					//Remove Leading Slash for groups that needs it to contact the bot
+					checkToAddRows(conn, u.Message.Chat.ID, mots[1], removeLeadingSlash(mots[0]))
 				}
 			} else {
 				// No user or city can be determined, use default
-				checkToAddRows(conn, u.Message.Chat.ID, "Paris", "Les amis")
+				checkToAddRows(conn, u.Message.Chat.ID, "Paris", "les amis")
 			}
 		}
 	}
+}
+
+func removeLeadingSlash(s string) string {
+	return strings.TrimPrefix(s, "/")
 }
 
 func getChatIdsFromDB() []Message {

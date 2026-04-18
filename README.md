@@ -7,7 +7,12 @@ Je suis un bot Telegram qui t'enverra la météo de la journée tout les jours �
 
 (Mon créateur à la facheuse tendance d'oublier de prendre son parapluie les jours de pluies)
 
-Pour m'uiliser tu peux soit, me deployer sur ton propre projet git pour de l'automatisation ou me tester en local.
+Pour m'uiliser tu peux utiliser ma version déployé en envoyant ton surnom et ta ville (par exemple Toobo Paris)
+
+![QR Code Telegram](img/qrcodetelgram.png)
+
+
+Tu peux aussi me deployer sur ton propre projet git pour de l'automatisation ou me tester en local.
 
 Mais tout d'abord tu devra crée ta propre copie de Toobot :
 
@@ -32,11 +37,13 @@ Ensuite clique sur Settings > Secrets and variables > Actions
 Puis renseigne les variables suivantes qu'on est allé chercher ensemble :
 ```
 TELEGRAM_TOKEN=TOKEN_API_TOOBOT
-CHAT_ID=CLIENT_ID
-METEO_URL=https://api.open-meteo.com/v1/forecast?latitude=10.1111&longitude=1.1111&daily=weather_code,sunrise,sunset,wind_speed_10m_max,apparent_temperature_max,apparent_temperature_min,daylight_duration,sunshine_duration,showers_sum,snowfall_sum,precipitation_hours,rain_sum,uv_index_max&models=meteofrance_seamless&timezone=Europe%2FBerlin&forecast_days=1 #TODO: personnaliser en fonction de sa ville
 ```
 
 Et voila, maintenant tu auras aussi ton propre Toobot qui pourra envoyer ses conseils météo à toi et tes proches
+
+## Deploiement de la base de donnée
+
+Toobot tourne actuellement avec une table dans Supabase, pour deployer la tienne (coming soon..)
 
 ## Test en local
 
