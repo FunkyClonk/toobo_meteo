@@ -5,13 +5,28 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strconv"
 	"strings"
 	"toobo/meteo"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/jackc/pgx/v5"
 )
+
+type Sending struct {
+	City      string
+	UserInfos []UserInfo
+}
+
+type UserInfo struct {
+	ChatID   int64
+	ChatName string
+	Delete   bool
+}
+
+type Message struct {
+	City    string
+	UserInf UserInfo
+}
 
 func getBot() *tgbotapi.BotAPI {
 	token := os.Getenv("TELEGRAM_TOKEN")
@@ -30,83 +45,143 @@ func craftMessage(dataMeteo meteo.MeteoResponse) string {
 	return message
 }
 
-func sendMessage(bot *tgbotapi.BotAPI, chatIds []int64, message string) {
-	// ChatID cible (utilisateur, groupe ou canal)
-	chatIDsStr := os.Getenv("CHAT_IDS")
-	chatIDParts := strings.Split(chatIDsStr, ",")
-
-	for _, part := range chatIDParts {
-		part = strings.TrimSpace(part)
-		if part == "" {
-			continue
-		}
-
-		chatID, err := strconv.ParseInt(part, 10, 64)
-		if err != nil {
-			log.Printf("Invalid CHAT_ID '%s': %v", part, err)
-			continue
-		}
-
-		msg := tgbotapi.NewMessage(chatID, message)
-		if _, err := bot.Send(msg); err != nil {
-			log.Printf("Failed to send to %d: %v", chatID, err)
-		}
-	}
-	// TODO : Update with chatIds only if not present in defaut chatIds
-	// fmt.Println("Deuxieme envoie")
-	// for _, chatId := range chatIds {
-	// 	msg := tgbotapi.NewMessage(chatId, "message")
-	// 	if _, err := bot.Send(msg); err != nil {
-	// 		log.Printf("Failed to send to %d: %v", chatId, err)
-	// 	}
-	// }
+func craftCustomMessage(userInfo UserInfo, dataMeteo meteo.MeteoResponse) string {
+	var message string
+	message += fmt.Sprintf("Salut %s ☀️!\nAlors, quel est la température aujourd'hui?\n", userInfo.ChatName)
+	message += meteo.GetAdvices(dataMeteo)
+	message += "Bonne journée!"
+	return message
 }
 
-func getChatIds(bot *tgbotapi.BotAPI) []int64 {
+func sendMessage(bot *tgbotapi.BotAPI, message string, chatId int64) {
+	msg := tgbotapi.NewMessage(chatId, message)
+	if _, err := bot.Send(msg); err != nil {
+		log.Printf("Failed to send to %d: %v", chatId, err)
+	}
+}
+
+// TODO : add database upgrade in this function instead of just append the 2 lists
+func getChatIds(bot *tgbotapi.BotAPI) []Message {
+	updateChatIdsToDBFromBot(bot)
+	chatIdsDB := getChatIdsFromDB()
+	return chatIdsDB
+}
+
+func testAddAndDelete(conn *pgx.Conn) {
+	testChatId := int64(999999)
+	testCity := "TestCity"
+	testName := "TestName"
+
+	addRows(conn, testChatId, testCity, testName)
+
+	deleteRow(conn, testChatId)
+}
+
+func updateChatIdsToDBFromBot(bot *tgbotapi.BotAPI) {
+	conn, err := pgx.Connect(context.Background(), os.Getenv("DB_PULLER"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	// Just to tringer the Supabase table
+	testAddAndDelete(conn)
 	updates, err := bot.GetUpdates(tgbotapi.NewUpdate(0))
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	seen := make(map[int64]bool)
-	var ids []int64
-	for _, u := range updates {
+	for i := len(updates) - 1; i >= 0; i-- {
+		u := updates[i]
 		id := u.Message.Chat.ID
+
 		if !seen[id] {
 			seen[id] = true
-			ids = append(ids, id)
+			mots := strings.Fields(u.Message.Text)
+			if len(mots) > 1 {
+				if mots[1] == "Supprimer" {
+					deleteRow(conn, u.Message.Chat.ID)
+				} else {
+					checkToAddRows(conn, u.Message.Chat.ID, mots[1], mots[0])
+				}
+			} else {
+				// No user or city can be determined, use default
+				checkToAddRows(conn, u.Message.Chat.ID, "Paris", "Les amis")
+			}
 		}
 	}
-	return ids
 }
 
-func getRows(conn *pgx.Conn) {
+func getChatIdsFromDB() []Message {
+	conn, err := pgx.Connect(context.Background(), os.Getenv("DB_PULLER"))
 	rows, err := conn.Query(context.Background(), "SELECT id, chat_id, city, chat_name FROM chat_info_telegram_toobo")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer rows.Close()
-
+	var chatIdsDB []Message
 	for rows.Next() {
-		var id, chat_id int
+		var id, chat_id int64
 		var city, chat_name string
 		if err := rows.Scan(&id, &chat_id, &city, &chat_name); err != nil {
 			log.Fatal(err)
 		}
-		fmt.Printf("id=%d chat_id=%d city=%s user=%s\n", id, chat_id, city, chat_name)
+		ui := UserInfo{
+			ChatID:   chat_id,
+			ChatName: chat_name,
+			Delete:   false,
+		}
+		m := Message{
+			City:    city,
+			UserInf: ui,
+		}
+		chatIdsDB = append(chatIdsDB, m)
 	}
+	return chatIdsDB
 }
 
-func addRows(conn *pgx.Conn) {
+func deleteRow(conn *pgx.Conn, chatId int64) {
 	_, err := conn.Exec(context.Background(),
-		"INSERT INTO chat_info_telegram_toobo (chat_id, city, chat_name) VALUES ($1, $2, $3)",
-		"654", "Paris", "Le parisien",
+		"DELETE FROM chat_info_telegram_toobo WHERE chat_id = $1",
+		chatId,
 	)
 	if err != nil {
 		log.Fatal(err)
 	}
 }
-func pingDatabase() {
+
+func checkToAddRows(conn *pgx.Conn, chatId int64, city string, name string) {
+	var existingId int64
+	err := conn.QueryRow(context.Background(),
+		"SELECT chat_id FROM chat_info_telegram_toobo WHERE chat_id = $1",
+		chatId,
+	).Scan(&existingId)
+
+	if err == pgx.ErrNoRows {
+		addRows(conn, chatId, city, name)
+	} else if err != nil {
+		log.Fatal(err)
+	} else {
+		_, err = conn.Exec(context.Background(),
+			"UPDATE chat_info_telegram_toobo SET city = $1, chat_name = $2 WHERE chat_id = $3",
+			city, name, chatId,
+		)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+}
+
+func addRows(conn *pgx.Conn, chatId int64, city string, name string) {
+	_, err := conn.Exec(context.Background(),
+		"INSERT INTO chat_info_telegram_toobo (chat_id, city, chat_name) VALUES ($1, $2, $3)",
+		chatId, city, name,
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func connectDatabase() *pgx.Conn {
 	conn, err := pgx.Connect(context.Background(), os.Getenv("DB_PULLER"))
 	if err != nil {
 		log.Fatalf("Failed to connect to the database: %v", err)
@@ -133,25 +208,46 @@ func pingDatabase() {
 	for rows.Next() {
 		var name string
 		rows.Scan(&name)
-		fmt.Println(name)
+	}
+	return conn
+}
+
+func getSendings(chatIds []Message) []Sending {
+	cityMap := make(map[string][]UserInfo)
+	cityOrder := []string{}
+
+	for _, chatId := range chatIds {
+		if _, exists := cityMap[chatId.City]; !exists {
+			cityOrder = append(cityOrder, chatId.City)
+		}
+		cityMap[chatId.City] = append(cityMap[chatId.City], chatId.UserInf)
 	}
 
-	// getRows(conn)
-	// addRows(conn)
-
+	sendings := make([]Sending, 0, len(cityMap))
+	for _, city := range cityOrder {
+		sendings = append(sendings, Sending{
+			City:      city,
+			UserInfos: cityMap[city],
+		})
+	}
+	return sendings
 }
 
-func CallBotTelegram(dataMeteo meteo.MeteoResponse) {
+func sendMessages(bot *tgbotapi.BotAPI, userInfos []UserInfo, dataMeteo meteo.MeteoResponse) {
+	for _, userInfo := range userInfos {
+		//For each user
+		messageCustom := craftCustomMessage(userInfo, dataMeteo)
+		sendMessage(bot, messageCustom, userInfo.ChatID)
+	}
+}
+
+func CallBotTelegram() {
 	bot := getBot()
-	pingDatabase()
-	message := craftMessage(dataMeteo)
 	chatIds := getChatIds(bot)
-	sendMessage(bot, chatIds, message)
+	sendings := getSendings(chatIds)
+	//For each city
+	for _, sending := range sendings {
+		dataMeteo := meteo.CallMeteo(sending.City)
+		sendMessages(bot, sending.UserInfos, dataMeteo)
+	}
 }
-
-//TODO
-// func SaveChatID(id int64) {
-//     f, _ := os.OpenFile("chat_ids.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-//     defer f.Close()
-//     fmt.Fprintln(f, id)
-// }

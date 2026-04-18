@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"time"
-
-	"os"
 )
 
 type MeteoResponse struct {
@@ -32,9 +30,15 @@ type MeteoResponse struct {
 	} `json:"hourly"`
 }
 
-func CallMeteo() MeteoResponse {
-	url := os.Getenv("METEO_URL")
+type Coordinates struct {
+	Lat  float64
+	Long float64
+	City string
+}
 
+func CallMeteo(city string) MeteoResponse {
+	coordinates := GetCoordinatesFromString(city)
+	url := fmt.Sprintf("https://api.open-meteo.com/v1/forecast?latitude=%.4f&longitude=%.4f&daily=weather_code,sunrise,sunset,apparent_temperature_max,apparent_temperature_min,wind_speed_10m_max,daylight_duration,sunshine_duration,showers_sum,snowfall_sum,precipitation_hours,rain_sum,uv_index_max&hourly=wind_speed_10m,apparent_temperature,rain&models=meteofrance_seamless&timezone=Europe%%2FBerlin&forecast_days=1", coordinates.Long, coordinates.Lat)
 	resp, err := http.Get(url)
 	if err != nil {
 		panic(err)
@@ -63,7 +67,6 @@ func GetAdvices(dataMeteo MeteoResponse) string {
 func getAdviceUV(dataMeteo MeteoResponse) string {
 	advice := ""
 	if dataMeteo.Daily.UVMax[0] != 0 {
-		fmt.Printf("Indice UV max: %.1f \n", dataMeteo.Daily.UVMax[0])
 		uvMax := dataMeteo.Daily.UVMax[0]
 		if uvMax > 3 {
 			advice = "Le soleil va tapper aujourd'hui, prend tes lunettes et ta crème solaire!\n"
@@ -94,9 +97,7 @@ func getAdviceDayTime(dataMeteo MeteoResponse) string {
 	}
 	sunset := ssTime.Format("15:04")
 	dayLightDurationHours := float64(dataMeteo.Daily.DayLightDuration[0]) / 3600
-	//fmt.Println(dayLightDurationHours) // 2
 	sunshineDurationHours := float64(dataMeteo.Daily.SunshineDuration[0]) / 3600
-	//fmt.Println(sunshineDurationHours) // 2
 	advice := fmt.Sprintf("Le soleil se levera à %s et se couchera à %s\nDonc %.0fh de lumière du jour et %.0fh d'ensolleiment\n", sunrise, sunset, dayLightDurationHours, sunshineDurationHours)
 	if sunshineDurationHours < 7 {
 		advice += "Une journée nuageuse mais pas de quoi se décourager!\n"
@@ -130,7 +131,6 @@ func getAdviceWind(dataMeteo MeteoResponse) string {
 }
 
 func getAdviceWeatherCode(dataMeteo MeteoResponse) string {
-	//fmt.Println(dataMeteo.Daily.RainSum)
 	weatherSignification := getWeatherCodeTraduction(dataMeteo.Daily.WeatherCode[0])
 	advice := fmt.Sprintf("Aujourd'hui on aura : %s\n", weatherSignification)
 	return advice
@@ -179,4 +179,35 @@ func getAdviceTemperature(dataMeteo MeteoResponse) string {
 	}
 	advice += fmt.Sprintf("En particulier, A 8h il fera %.1f°C et à 18h il fera %.1f°C\n", dataMeteo.Hourly.TemperatureHourly[8], dataMeteo.Hourly.TemperatureHourly[18])
 	return advice
+}
+
+func GetCoordinatesFromString(city string) Coordinates {
+	var coordinates Coordinates
+	switch city {
+	case "Paris":
+		coordinates = Coordinates{48.8534, 2.3488, "Paris"}
+	case "Marseille":
+		coordinates = Coordinates{43.297, 5.3811, "Marseille"}
+	case "Lyon":
+		coordinates = Coordinates{45.7485, 4.8467, "Lyon"}
+	case "Toulouse":
+		coordinates = Coordinates{43.6043, 1.4437, "Toulouse"}
+	case "Nice":
+		coordinates = Coordinates{43.7031, 7.2661, "Nice"}
+	case "Nantes":
+		coordinates = Coordinates{47.2172, -1.5534, "Nantes"}
+	case "Montpellier":
+		coordinates = Coordinates{43.6109, 3.8763, "Montpellier"}
+	case "Strasbourg":
+		coordinates = Coordinates{48.5839, 7.7455, "Strasbourg"}
+	case "Bordeaux":
+		coordinates = Coordinates{44.8404, -0.5805, "Bordeaux"}
+	case "Lille":
+		coordinates = Coordinates{50.633, 3.0586, "Lille"}
+	case "Tours":
+		coordinates = Coordinates{47.3948, 0.704, "Tours"}
+	default:
+		coordinates = Coordinates{48.8534, 2.3488, "Paris"}
+	}
+	return coordinates
 }

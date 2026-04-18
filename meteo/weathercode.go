@@ -1,7 +1,6 @@
 package meteo
 
 func getWeatherCodeTraduction(weatherCode int) string {
-	//fmt.Println(weatherCode)
 	var weatherSignification string
 	switch weatherCode {
 	case 0:
