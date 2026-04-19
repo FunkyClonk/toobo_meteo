@@ -30,15 +30,18 @@ type MeteoResponse struct {
 	} `json:"hourly"`
 }
 
-type Coordinates struct {
-	Lat  float64
-	Long float64
-	City string
+type Coordinate struct {
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
+}
+
+type ApiResponse struct {
+	Results []Coordinate `json:"results"`
 }
 
 func CallMeteo(city string) MeteoResponse {
 	coordinates := GetCoordinatesFromString(city)
-	url := fmt.Sprintf("https://api.open-meteo.com/v1/forecast?latitude=%.4f&longitude=%.4f&daily=weather_code,sunrise,sunset,apparent_temperature_max,apparent_temperature_min,wind_speed_10m_max,daylight_duration,sunshine_duration,showers_sum,snowfall_sum,precipitation_hours,rain_sum,uv_index_max&hourly=wind_speed_10m,apparent_temperature,rain&models=meteofrance_seamless&timezone=Europe%%2FBerlin&forecast_days=1", coordinates.Long, coordinates.Lat)
+	url := fmt.Sprintf("https://api.open-meteo.com/v1/forecast?latitude=%.4f&longitude=%.4f&daily=weather_code,sunrise,sunset,apparent_temperature_max,apparent_temperature_min,wind_speed_10m_max,daylight_duration,sunshine_duration,showers_sum,snowfall_sum,precipitation_hours,rain_sum,uv_index_max&hourly=wind_speed_10m,apparent_temperature,rain&models=meteofrance_seamless&timezone=Europe%%2FBerlin&forecast_days=1", coordinates.Longitude, coordinates.Latitude)
 	resp, err := http.Get(url)
 	if err != nil {
 		panic(err)
@@ -181,33 +184,26 @@ func getAdviceTemperature(dataMeteo MeteoResponse) string {
 	return advice
 }
 
-func GetCoordinatesFromString(city string) Coordinates {
-	var coordinates Coordinates
-	switch city {
-	case "Paris":
-		coordinates = Coordinates{48.8534, 2.3488, "Paris"}
-	case "Marseille":
-		coordinates = Coordinates{43.297, 5.3811, "Marseille"}
-	case "Lyon":
-		coordinates = Coordinates{45.7485, 4.8467, "Lyon"}
-	case "Toulouse":
-		coordinates = Coordinates{43.6043, 1.4437, "Toulouse"}
-	case "Nice":
-		coordinates = Coordinates{43.7031, 7.2661, "Nice"}
-	case "Nantes":
-		coordinates = Coordinates{47.2172, -1.5534, "Nantes"}
-	case "Montpellier":
-		coordinates = Coordinates{43.6109, 3.8763, "Montpellier"}
-	case "Strasbourg":
-		coordinates = Coordinates{48.5839, 7.7455, "Strasbourg"}
-	case "Bordeaux":
-		coordinates = Coordinates{44.8404, -0.5805, "Bordeaux"}
-	case "Lille":
-		coordinates = Coordinates{50.633, 3.0586, "Lille"}
-	case "Tours":
-		coordinates = Coordinates{47.3948, 0.704, "Tours"}
-	default:
-		coordinates = Coordinates{48.8534, 2.3488, "Paris"}
+func GetCoordinatesFromString(city string) Coordinate {
+	url := fmt.Sprintf("https://geocoding-api.open-meteo.com/v1/search?name=%s&count=1&language=en&format=json", city)
+
+	resp, err := http.Get(url)
+	if err != nil {
+		panic(err)
 	}
-	return coordinates
+	defer resp.Body.Close()
+
+	var data ApiResponse
+	err = json.NewDecoder(resp.Body).Decode(&data)
+	if err != nil {
+		panic(err)
+	}
+
+	if len(data.Results) == 0 {
+		panic("no results found")
+	}
+
+	coord := data.Results[0]
+
+	return coord
 }
