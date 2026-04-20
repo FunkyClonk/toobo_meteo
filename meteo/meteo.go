@@ -40,8 +40,9 @@ type ApiResponse struct {
 }
 
 type Advice struct {
-	Hot bool
-	//TODO Sunny, Rainny...
+	Temperature int8
+	Sunny       bool
+	Rainny      bool
 }
 
 func CallMeteo(city string) MeteoResponse {
@@ -61,27 +62,58 @@ func CallMeteo(city string) MeteoResponse {
 	return data
 }
 
-// TODO add other advices
 func getImageFromAdvice(advice Advice) string {
-	imageRef := "img/clothing/"
-	if advice.Hot {
-		imageRef += "hot"
-	} else {
-		imageRef += "cold"
+	base := "img/clothing/"
+
+	switch {
+	// Hot (2)
+	case advice.Temperature == 2 && advice.Sunny && !advice.Rainny:
+		return base + "hot_sunny.png"
+	case advice.Temperature == 2 && !advice.Sunny && advice.Rainny:
+		return base + "hot.png"
+	case advice.Temperature == 2 && advice.Sunny && advice.Rainny:
+		return base + "hot_sunny.png"
+	case advice.Temperature == 2 && !advice.Sunny && !advice.Rainny:
+		return base + "hot.png"
+
+	// Mid (1)
+	case advice.Temperature == 1 && advice.Sunny && !advice.Rainny:
+		return base + "mid.png"
+	case advice.Temperature == 1 && !advice.Sunny && advice.Rainny:
+		return base + "mid_rainy.png"
+	case advice.Temperature == 1 && advice.Sunny && advice.Rainny:
+		return base + "mid_rainy.png"
+	case advice.Temperature == 1 && !advice.Sunny && !advice.Rainny:
+		return base + "mid.png"
+
+	// Cold (0)
+	case advice.Temperature == 0 && advice.Sunny && !advice.Rainny:
+		return base + "cold.png"
+	case advice.Temperature == 0 && !advice.Sunny && advice.Rainny:
+		return base + "cold_rainy.png"
+	case advice.Temperature == 0 && advice.Sunny && advice.Rainny:
+		return base + "cold_rainny.png"
+	case advice.Temperature == 0 && !advice.Sunny && !advice.Rainny:
+		return base + "cold.png"
 	}
-	imageRef += ".png"
-	return imageRef
+
+	// fallback (au cas où valeur inattendue)
+	return base + "unknown.png"
 }
 
 func GetAdvices(dataMeteo MeteoResponse) (string, string) {
-	var advice Advice
+	advice := Advice{
+		Temperature: 1,
+		Sunny:       false,
+		Rainny:      false,
+	}
 
-	messageAdvices := getAdviceWeatherCode(dataMeteo, &advice)
+	messageAdvices := getAdviceWeatherCode(dataMeteo)
 	messageAdvices += getAdviceTemperature(dataMeteo, &advice)
 	messageAdvices += getAdviceRain(dataMeteo, &advice)
-	messageAdvices += getAdviceWind(dataMeteo, &advice)
-	messageAdvices += getAdviceDayTime(dataMeteo, &advice)
-	messageAdvices += getAdviceSnow(dataMeteo, &advice)
+	messageAdvices += getAdviceWind(dataMeteo)
+	messageAdvices += getAdviceDayTime(dataMeteo)
+	messageAdvices += getAdviceSnow(dataMeteo)
 	messageAdvices += getAdviceUV(dataMeteo, &advice)
 	imageRef := getImageFromAdvice(advice)
 	return messageAdvices, imageRef
@@ -93,13 +125,13 @@ func getAdviceUV(dataMeteo MeteoResponse, adviceStruct *Advice) string {
 		uvMax := dataMeteo.Daily.UVMax[0]
 		if uvMax > 3 {
 			advice = "Le soleil va tapper aujourd'hui, prend tes lunettes et ta crème solaire!\n"
+			adviceStruct.Sunny = true
 		}
-
 	}
 	return advice
 }
 
-func getAdviceSnow(dataMeteo MeteoResponse, adviceStruct *Advice) string {
+func getAdviceSnow(dataMeteo MeteoResponse) string {
 	snowfallSum := dataMeteo.Daily.SnowfallSum[0]
 	var advice string
 	if snowfallSum > 0 {
@@ -108,7 +140,7 @@ func getAdviceSnow(dataMeteo MeteoResponse, adviceStruct *Advice) string {
 	return advice
 }
 
-func getAdviceDayTime(dataMeteo MeteoResponse, adviceStruct *Advice) string {
+func getAdviceDayTime(dataMeteo MeteoResponse) string {
 	srTime, err := time.Parse("2006-01-02T15:04", dataMeteo.Daily.Sunrise[0])
 	if err != nil {
 		panic(err)
@@ -129,7 +161,7 @@ func getAdviceDayTime(dataMeteo MeteoResponse, adviceStruct *Advice) string {
 	}
 	return advice
 }
-func getAdviceWind(dataMeteo MeteoResponse, adviceStruct *Advice) string {
+func getAdviceWind(dataMeteo MeteoResponse) string {
 	windSpeed := dataMeteo.Daily.WindSpeed[0]
 	var advice string
 	switch {
@@ -153,7 +185,7 @@ func getAdviceWind(dataMeteo MeteoResponse, adviceStruct *Advice) string {
 	return advice
 }
 
-func getAdviceWeatherCode(dataMeteo MeteoResponse, adviceStruct *Advice) string {
+func getAdviceWeatherCode(dataMeteo MeteoResponse) string {
 	weatherSignification := getWeatherCodeTraduction(dataMeteo.Daily.WeatherCode[0])
 	advice := fmt.Sprintf("Aujourd'hui on aura : %s\n", weatherSignification)
 	return advice
@@ -168,10 +200,12 @@ func getAdviceRain(dataMeteo MeteoResponse, adviceStruct *Advice) string {
 		showerSum := dataMeteo.Daily.ShowersSum[0]
 		if showerSum > 0 {
 			advice = "De grosses averses sont a prévoires\n Je te conseil de prendre ton parapluie et du kway pour te protéger\n"
+			adviceStruct.Rainny = true
 		} else {
 			precipitationHours := dataMeteo.Daily.PrecipitationHours[0]
 			if precipitationHours > 5 {
 				advice = "Il pleuvera un peu toute la journée, tu peut prendre un kway pour te balader en toute tranquillité\n"
+				adviceStruct.Rainny = true
 			} else {
 				advice = "Très peu de pluie aujourd'hui, youpi!\n"
 			}
@@ -195,13 +229,15 @@ func getAdviceTemperature(dataMeteo MeteoResponse, adviceStruct *Advice) string 
 	temperatureMin := dataMeteo.Daily.TemperatureMin[0]
 	if temperatureMax > 20 {
 		advice += "☀️ Un petit pull grand max, il fera chaud aujourd'hui 😎\n"
-		adviceStruct.Hot = true
+		adviceStruct.Temperature = 2
+		//While UV isn't working, use temp to get the sun
+		adviceStruct.Sunny = temperatureMax > 30
 	} else if temperatureMin < 2 {
 		advice += "❄️ Brr, mets un bon manteau, un bonnet et des gants, il fera froid aujourd'hui 🧥🧣\n"
-		adviceStruct.Hot = false
+		adviceStruct.Temperature = 0
 	} else {
 		advice += "🌤️ Une bonne polaire suffira, il fera bon aujourd'hui 🙂\n"
-		adviceStruct.Hot = false
+		adviceStruct.Temperature = 1
 	}
 	advice += fmt.Sprintf("En particulier, A 8h il fera %.1f°C et à 18h il fera %.1f°C\n", dataMeteo.Hourly.TemperatureHourly[8], dataMeteo.Hourly.TemperatureHourly[18])
 	return advice
