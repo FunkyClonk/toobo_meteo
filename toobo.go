@@ -8,5 +8,5 @@ import (
 
 func main() {
 	godotenv.Load()
-	bot.CallBotTelegram()
+	bot.Run()
 }

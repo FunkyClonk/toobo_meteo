@@ -1,8 +1,8 @@
 package meteo
 
-func getWeatherCodeTraduction(weatherCode int) string {
+func getWeatherCodeLabel(code int) string {
 	var weatherSignification string
-	switch weatherCode {
+	switch code {
 	case 0:
 		weatherSignification = "Développement nuageux non observé ou non observable"
 	case 1:

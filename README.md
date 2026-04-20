@@ -1,63 +1,110 @@
-Salut les amis!
+# Toobo — Bot Météo Telegram
 
-C'est moi, Toobo(t),
+Salut les amis ! C'est moi, **Toobo** 👋
 
-![Toobo et la méteo de Gulli](img/toobo.png)
-Je suis un bot Telegram qui t'enverra la météo de la journée tout les jours à 7h ainsi que des conseils pour que tu n'oublies pas de t'équiper correctement!
+![Toobo et la météo](img/toobo.png)
 
-(Mon créateur à la facheuse tendance d'oublier de prendre son parapluie les jours de pluies)
+Je suis un bot Telegram qui t'envoie la météo du jour **tous les jours à 7h**, avec des conseils vestimentaires pour que tu ne sors jamais sans le bon équipement !
+*(Mon créateur a la fâcheuse tendance d'oublier son parapluie les jours de pluie...)*
 
-Pour m'uiliser tu peux utiliser ma version déployé en envoyant ton surnom et ta ville (par exemple Toobo Paris)
+---
+
+## Utiliser la version déployée
+
+Tu peux utiliser ma version déployée directement en m'envoyant un message Telegram avec la commande `/add <prénom> <ville>` (par exemple `/add Toobo Paris`) :
 
 ![QR Code Telegram](img/qrcodetelgram.png)
 
+---
 
-Tu peux aussi me deployer sur ton propre projet git pour de l'automatisation ou me tester en local.
+## Déployer ton propre Toobot
 
-Mais tout d'abord tu devra crée ta propre copie de Toobot :
+### 1. Créer son bot Telegram
 
-## Creer son Toobot :
+Toobot est un bot Telegram. Tu devras donc :
+1. Créer un compte Telegram si ce n'est pas déjà fait
+2. Envoyer un message à **@BotFather**
+3. Envoyer la commande `/newbot`
+4. Choisir un nom pour ton Toobot
+5. BotFather te renverra un **token API** — garde-le précieusement, on en aura besoin très vite !
 
-Toobot est un bot Telegram, tu devras donc crée un compte telegram, envoyer un message à @BotFather puis envoyer /newbot, selectionne ensuite le nom de ton Toobot et il te renverra un token API (garde le précieusement, on en aura besoin très vite)
+---
 
-## Choisir sa cible :
+### 2. Choisir sa cible
 
-Toobot peut envoyer ses messages à un groupe ou un utilisateur directement, pour ça, il te faut envoyer `/hello @ID_DE_TON_TOOBOT` dans la conversation souhaiter.
-Ensuite remplace TOKEN_API_TOOBOT par ton token presonnel et va sur : 
+Toobot peut envoyer ses messages à un groupe ou à un utilisateur directement. Pour cela :
+
+1. Envoie `/add <prénom> <ville>` dans la conversation souhaitée (groupe ou privé)
+2. Remplace `TOKEN_API_TOOBOT` par ton token personnel et visite :
+```
 https://api.telegram.org/botTOKEN_API_TOOBOT/getUpdates
+```
+3. Tu y trouveras un champ de cette forme : `"chat":{"id":-CLIENT_ID`
 
-Tu y trouvera un champ de cette forme `"chat":{"id":-CLIENT_ID,`
+Tu as maintenant ton `CLIENT_ID` — garde-le bien au chaud !
 
-Voila tu as maintenant ton client_ID (celui la aussi garde le bien au chaud)
+---
 
-## Deploiement sous github Action
+### 3. Déploiement de la base de données
 
-Fork ce projet ou copie le independament.
-Ensuite clique sur Settings > Secrets and variables > Actions
-Puis renseigne les variables suivantes qu'on est allé chercher ensemble :
+Toobot tourne actuellement avec une table **Supabase**. La structure attendue est la suivante :
+
+```sql
+CREATE TABLE chat_info_telegram_toobo (
+    id        BIGSERIAL PRIMARY KEY,
+    chat_id   BIGINT UNIQUE NOT NULL,
+    city      TEXT NOT NULL,
+    chat_name TEXT NOT NULL
+);
+```
+
+Crée un projet sur [supabase.com](https://supabase.com), crée cette table, puis récupère ta **connection string** dans *Settings > Database > Connection string*.
+
+---
+
+### 4. Déploiement sous GitHub Actions
+
+1. Fork ce projet ou copie-le indépendamment
+2. Clique sur **Settings > Secrets and variables > Actions**
+3. Renseigne les variables suivantes :
+
 ```
 TELEGRAM_TOKEN=TOKEN_API_TOOBOT
+DB_PULLER=postgresql://postgres:[PASSWORD]@[HOST]:5432/postgres
 ```
 
-Et voila, maintenant tu auras aussi ton propre Toobot qui pourra envoyer ses conseils météo à toi et tes proches
+Et voilà — ton propre Toobot enverra ses conseils météo à toi et tes proches chaque matin !
 
-## Deploiement de la base de donnée
+---
 
-Toobot tourne actuellement avec une table dans Supabase, pour deployer la tienne (coming soon..)
+### 5. Test en local
 
-## Test en local
-
-En local, tu peux 
 ```bash
 git clone https://github.com/FunkyClonk/toobo_meteo.git
-cd toobo.go
-chmod +x toboo.go
+cd toobo_meteo
 cp .env.example .env
 vi .env
 ```
-Renseigne ensuite les variables avec ce que tu à pu trouver dans les parties précédentes.
 
-Tu peux maintenant tester ton Toobot en envoyant un message  
+Renseigne les variables avec ce que tu as récupéré dans les étapes précédentes :
+
+```env
+TELEGRAM_TOKEN=TOKEN_API_TOOBOT
+DB_PULLER=postgresql://postgres:[PASSWORD]@[HOST]:5432/postgres
+```
+
+Lance ensuite le bot :
+
 ```bash
 go run .
 ```
+
+---
+
+## Stack technique
+
+- **Go** — logique principale
+- **Telegram Bot API** — envoi des messages
+- **Open-Meteo API** — données météo (gratuit, sans clé)
+- **Supabase** — base de données PostgreSQL hébergée
+- **GitHub Actions** — automatisation quotidienne à 7h
