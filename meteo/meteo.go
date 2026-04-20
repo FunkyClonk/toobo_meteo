@@ -97,8 +97,8 @@ func getImageFromAdvice(advice Advice) string {
 		return base + "cold.png"
 	}
 
-	// fallback (au cas où valeur inattendue)
-	return base + "unknown.png"
+	// fallback
+	return base + "mid.png"
 }
 
 func GetAdvices(dataMeteo MeteoResponse) (string, string) {

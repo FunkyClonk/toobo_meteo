@@ -86,24 +86,29 @@ func updateChatIdsToDBFromBot(bot *tgbotapi.BotAPI) {
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	seen := make(map[int64]bool)
 	for i := len(updates) - 1; i >= 0; i-- {
 		u := updates[i]
+		if u.Message == nil { // ← garde
+			continue
+		}
 		id := u.Message.Chat.ID
-
 		if !seen[id] {
 			seen[id] = true
 			mots := strings.Fields(u.Message.Text)
-			if len(mots) > 1 {
-				if mots[1] == "Supprimer" {
+			if len(mots) >= 1 {
+				cmd := removeLeadingSlash(mots[0])
+				if strings.HasPrefix(cmd, "delete") {
 					deleteRow(conn, u.Message.Chat.ID)
+				} else if cmd == "add" && len(mots) >= 3 {
+					// /add <user> <city>  →  e.g. "/add Light Paris"
+					checkToAddRows(conn, u.Message.Chat.ID, mots[2], mots[1])
 				} else {
-					//Remove Leading Slash for groups that needs it to contact the bot
-					checkToAddRows(conn, u.Message.Chat.ID, mots[1], removeLeadingSlash(mots[0]))
+					// No valid command, use defaults
+					checkToAddRows(conn, u.Message.Chat.ID, "Paris", "les amis")
 				}
 			} else {
-				// No user or city can be determined, use default
+				// Empty message, use defaults
 				checkToAddRows(conn, u.Message.Chat.ID, "Paris", "les amis")
 			}
 		}
