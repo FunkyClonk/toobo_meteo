@@ -37,30 +37,28 @@ func getBot() *tgbotapi.BotAPI {
 	return bot
 }
 
-func craftMessage(dataMeteo meteo.MeteoResponse) string {
-	message := "Salut les copains ☀️!\nAlors, quel est la température aujourd'hui?\n"
-	message += meteo.GetAdvices(dataMeteo)
-	message += "Bonne journée!"
-	// message := fmt.Sprintf("Température: %.1f°C\nVent: %.1f km/h\nWeather code: %d", dataMeteo.Daily.TemperatureMax[0], dataMeteo.Daily.WindSpeed[0], dataMeteo.Daily.WeatherCode[0])
-	return message
-}
-
-func craftCustomMessage(userInfo UserInfo, dataMeteo meteo.MeteoResponse) string {
+func craftCustomMessageAndImage(userInfo UserInfo, dataMeteo meteo.MeteoResponse) (string, string) {
 	var message string
 	message += fmt.Sprintf("Salut %s ☀️!\nAlors, quel est la température aujourd'hui?\n", userInfo.ChatName)
-	message += meteo.GetAdvices(dataMeteo)
+	messageAdvice, imageRef := meteo.GetAdvices(dataMeteo)
+	message += messageAdvice
 	message += "Bonne journée!"
-	return message
+	return message, imageRef
 }
 
-func sendMessage(bot *tgbotapi.BotAPI, message string, chatId int64) {
+func sendMessage(bot *tgbotapi.BotAPI, message string, chatId int64, imageRef string) {
 	msg := tgbotapi.NewMessage(chatId, message)
 	if _, err := bot.Send(msg); err != nil {
-		log.Printf("Failed to send to %d: %v", chatId, err)
+		log.Printf("Failed to send message to %d: %v", chatId, err)
+		return
+	}
+
+	photo := tgbotapi.NewPhoto(chatId, tgbotapi.FilePath(imageRef))
+	if _, err := bot.Send(photo); err != nil {
+		log.Printf("Failed to send image to %d: %v", chatId, err)
 	}
 }
 
-// TODO : add database upgrade in this function instead of just append the 2 lists
 func getChatIds(bot *tgbotapi.BotAPI) []Message {
 	updateChatIdsToDBFromBot(bot)
 	chatIdsDB := getChatIdsFromDB()
@@ -241,8 +239,8 @@ func getSendings(chatIds []Message) []Sending {
 func sendMessages(bot *tgbotapi.BotAPI, userInfos []UserInfo, dataMeteo meteo.MeteoResponse) {
 	for _, userInfo := range userInfos {
 		//For each user
-		messageCustom := craftCustomMessage(userInfo, dataMeteo)
-		sendMessage(bot, messageCustom, userInfo.ChatID)
+		messageCustom, imageRef := craftCustomMessageAndImage(userInfo, dataMeteo)
+		sendMessage(bot, messageCustom, userInfo.ChatID, imageRef)
 	}
 }
 

@@ -39,6 +39,11 @@ type ApiResponse struct {
 	Results []Coordinate `json:"results"`
 }
 
+type Advice struct {
+	Hot bool
+	//TODO Sunny, Rainny...
+}
+
 func CallMeteo(city string) MeteoResponse {
 	coordinates := GetCoordinatesFromString(city)
 	url := fmt.Sprintf("https://api.open-meteo.com/v1/forecast?latitude=%.4f&longitude=%.4f&daily=weather_code,sunrise,sunset,apparent_temperature_max,apparent_temperature_min,wind_speed_10m_max,daylight_duration,sunshine_duration,showers_sum,snowfall_sum,precipitation_hours,rain_sum,uv_index_max&hourly=wind_speed_10m,apparent_temperature,rain&models=meteofrance_seamless&timezone=Europe%%2FBerlin&forecast_days=1", coordinates.Longitude, coordinates.Latitude)
@@ -56,18 +61,33 @@ func CallMeteo(city string) MeteoResponse {
 	return data
 }
 
-func GetAdvices(dataMeteo MeteoResponse) string {
-	advices := getAdviceWeatherCode(dataMeteo)
-	advices += getAdviceTemperature(dataMeteo)
-	advices += getAdviceRain(dataMeteo)
-	advices += getAdviceWind(dataMeteo)
-	advices += getAdviceDayTime(dataMeteo)
-	advices += getAdviceSnow(dataMeteo)
-	advices += getAdviceUV(dataMeteo)
-	return advices
+// TODO add other advices
+func getImageFromAdvice(advice Advice) string {
+	imageRef := "img/clothing/"
+	if advice.Hot {
+		imageRef += "hot"
+	} else {
+		imageRef += "cold"
+	}
+	imageRef += ".png"
+	return imageRef
 }
 
-func getAdviceUV(dataMeteo MeteoResponse) string {
+func GetAdvices(dataMeteo MeteoResponse) (string, string) {
+	var advice Advice
+
+	messageAdvices := getAdviceWeatherCode(dataMeteo, &advice)
+	messageAdvices += getAdviceTemperature(dataMeteo, &advice)
+	messageAdvices += getAdviceRain(dataMeteo, &advice)
+	messageAdvices += getAdviceWind(dataMeteo, &advice)
+	messageAdvices += getAdviceDayTime(dataMeteo, &advice)
+	messageAdvices += getAdviceSnow(dataMeteo, &advice)
+	messageAdvices += getAdviceUV(dataMeteo, &advice)
+	imageRef := getImageFromAdvice(advice)
+	return messageAdvices, imageRef
+}
+
+func getAdviceUV(dataMeteo MeteoResponse, adviceStruct *Advice) string {
 	advice := ""
 	if dataMeteo.Daily.UVMax[0] != 0 {
 		uvMax := dataMeteo.Daily.UVMax[0]
@@ -79,7 +99,7 @@ func getAdviceUV(dataMeteo MeteoResponse) string {
 	return advice
 }
 
-func getAdviceSnow(dataMeteo MeteoResponse) string {
+func getAdviceSnow(dataMeteo MeteoResponse, adviceStruct *Advice) string {
 	snowfallSum := dataMeteo.Daily.SnowfallSum[0]
 	var advice string
 	if snowfallSum > 0 {
@@ -88,7 +108,7 @@ func getAdviceSnow(dataMeteo MeteoResponse) string {
 	return advice
 }
 
-func getAdviceDayTime(dataMeteo MeteoResponse) string {
+func getAdviceDayTime(dataMeteo MeteoResponse, adviceStruct *Advice) string {
 	srTime, err := time.Parse("2006-01-02T15:04", dataMeteo.Daily.Sunrise[0])
 	if err != nil {
 		panic(err)
@@ -109,7 +129,7 @@ func getAdviceDayTime(dataMeteo MeteoResponse) string {
 	}
 	return advice
 }
-func getAdviceWind(dataMeteo MeteoResponse) string {
+func getAdviceWind(dataMeteo MeteoResponse, adviceStruct *Advice) string {
 	windSpeed := dataMeteo.Daily.WindSpeed[0]
 	var advice string
 	switch {
@@ -133,13 +153,13 @@ func getAdviceWind(dataMeteo MeteoResponse) string {
 	return advice
 }
 
-func getAdviceWeatherCode(dataMeteo MeteoResponse) string {
+func getAdviceWeatherCode(dataMeteo MeteoResponse, adviceStruct *Advice) string {
 	weatherSignification := getWeatherCodeTraduction(dataMeteo.Daily.WeatherCode[0])
 	advice := fmt.Sprintf("Aujourd'hui on aura : %s\n", weatherSignification)
 	return advice
 }
 
-func getAdviceRain(dataMeteo MeteoResponse) string {
+func getAdviceRain(dataMeteo MeteoResponse, adviceStruct *Advice) string {
 	rainSum := dataMeteo.Daily.RainSum[0]
 	var advice string
 	if rainSum == 0 {
@@ -168,17 +188,20 @@ func getAdviceRain(dataMeteo MeteoResponse) string {
 	return advice
 }
 
-func getAdviceTemperature(dataMeteo MeteoResponse) string {
+func getAdviceTemperature(dataMeteo MeteoResponse, adviceStruct *Advice) string {
 	advice := fmt.Sprintf("Température: %.1f - %.1f°C\n", dataMeteo.Daily.TemperatureMin[0], dataMeteo.Daily.TemperatureMax[0])
 	advice += "Avec cette température je te conseil je t'habiller comme ca!\n"
 	temperatureMax := dataMeteo.Daily.TemperatureMax[0]
 	temperatureMin := dataMeteo.Daily.TemperatureMin[0]
 	if temperatureMax > 20 {
 		advice += "☀️ Un petit pull grand max, il fera chaud aujourd'hui 😎\n"
+		adviceStruct.Hot = true
 	} else if temperatureMin < 2 {
 		advice += "❄️ Brr, mets un bon manteau, un bonnet et des gants, il fera froid aujourd'hui 🧥🧣\n"
+		adviceStruct.Hot = false
 	} else {
 		advice += "🌤️ Une bonne polaire suffira, il fera bon aujourd'hui 🙂\n"
+		adviceStruct.Hot = false
 	}
 	advice += fmt.Sprintf("En particulier, A 8h il fera %.1f°C et à 18h il fera %.1f°C\n", dataMeteo.Hourly.TemperatureHourly[8], dataMeteo.Hourly.TemperatureHourly[18])
 	return advice
