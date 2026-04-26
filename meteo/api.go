@@ -8,13 +8,10 @@ import (
 
 func FetchWeather(city string) MeteoResponse {
 	coords := fetchCoordinates(city)
-	fmt.Println(coords)
-	fmt.Println(city)
 	url := fmt.Sprintf(
 		"https://api.open-meteo.com/v1/forecast?latitude=%f&longitude=%f&daily=weather_code,sunrise,sunset,apparent_temperature_max,apparent_temperature_min,wind_speed_10m_max,daylight_duration,sunshine_duration,showers_sum,snowfall_sum,precipitation_hours,rain_sum,uv_index_max&hourly=wind_speed_10m,apparent_temperature,rain&models=meteofrance_seamless&timezone=Europe%%2FBerlin&forecast_days=1",
 		coords.Latitude, coords.Longitude,
 	)
-	fmt.Println(url)
 	resp, err := http.Get(url)
 	if err != nil {
 		panic(err)
@@ -25,7 +22,6 @@ func FetchWeather(city string) MeteoResponse {
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
 		panic(err)
 	}
-	fmt.Println(data.Daily.TemperatureMax)
 	return data
 }
 

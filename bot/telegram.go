@@ -87,9 +87,9 @@ func sendWeatherToUsers(bot *tgbotapi.BotAPI, users []User, weather meteo.MeteoR
 }
 
 func buildWeatherMessage(user User, weather meteo.MeteoResponse) (string, string) {
-	msg := fmt.Sprintf("Salut %s ☀️!\nAlors, quel est la température aujourd'hui?\n", user.Name)
+	msg := fmt.Sprintf("Salut %s ☀️!\n", user.Name)
 	advice, imageRef := meteo.BuildAdvice(weather)
-	msg += advice + "Bonne journée!"
+	msg += advice + "Bonne journée! 🍌"
 	return msg, imageRef
 }
 
