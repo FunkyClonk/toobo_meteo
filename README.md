@@ -103,8 +103,8 @@ go run .
 
 ## Stack technique
 
-- **Go** — logique principale
-- **Telegram Bot API** — envoi des messages
+- **Go** — logique principale (pour apprendre)
+- **Telegram Bot API** — envoi des messages (facile d'y créer des bots)
 - **Open-Meteo API** — données météo (gratuit, sans clé)
-- **Supabase** — base de données PostgreSQL hébergée
-- **GitHub Actions** — automatisation quotidienne à 7h
+- **Supabase** — base de données PostgreSQL hébergée (gratuit pour mon usage)
+- **GitHub Actions** — automatisation quotidienne à 7h (la aussi gratuit)
