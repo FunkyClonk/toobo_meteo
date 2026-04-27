@@ -30,7 +30,7 @@ func buildWeatherCodeMessage(weather MeteoResponse) string {
 func buildTemperatureMessage(weather MeteoResponse, advice *clothingAdvice) string {
 	max := weather.Daily.TemperatureMax[0]
 	min := weather.Daily.TemperatureMin[0]
-	msg := fmt.Sprintf("Côté thermomètre, il fera entre %.1f°C et %.1f°C. 🌡️\n", min, max)
+	msg := fmt.Sprintf("Côté thermomètre, aujourd'hui, il fera entre %.1f°C et %.1f°C. 🌡️\n", min, max)
 
 	switch {
 	case max >= 28:
